@@ -26,6 +26,18 @@ final class PersistenceManager: PersistenceManaging {
             let description = NSPersistentStoreDescription()
             description.url = URL(fileURLWithPath: "/dev/null")
             container.persistentStoreDescriptions = [description]
+        } else {
+            do {
+                let storeURL = try Self.storeURL()
+                try FileManager.default.createDirectory(
+                    at: storeURL.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                let description = NSPersistentStoreDescription(url: storeURL)
+                container.persistentStoreDescriptions = [description]
+            } catch {
+                fatalError("Failed to prepare Core Data store directory: \(error.localizedDescription)")
+            }
         }
 
         container.loadPersistentStores { _, error in
@@ -93,8 +105,18 @@ final class PersistenceManager: PersistenceManaging {
             guard let url = store.url else { continue }
             let storeType = NSPersistentStore.StoreType(rawValue: store.type)
             try coordinator.destroyPersistentStore(at: url, type: storeType)
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
             _ = try coordinator.addPersistentStore(type: storeType, at: url)
         }
+    }
+
+    private static func storeURL() throws -> URL {
+        try FileManager.default
+            .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("MindVaultModel.sqlite")
     }
 
     private static func makeModel() -> NSManagedObjectModel {

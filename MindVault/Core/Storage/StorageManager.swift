@@ -41,10 +41,17 @@ final class StorageManager: StorageManaging {
         for directory in directories {
             let url = try fileManager.url(for: directory, in: .userDomainMask, appropriateFor: nil, create: true)
             let items = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
-            for item in items where item.lastPathComponent != "Snapshots" {
+            for item in items where shouldRemoveLocalFile(item) {
                 try? fileManager.removeItem(at: item)
             }
         }
+    }
+
+    private func shouldRemoveLocalFile(_ url: URL) -> Bool {
+        let name = url.lastPathComponent
+        guard name != "Snapshots" else { return false }
+        guard !name.hasPrefix("MindVaultModel.sqlite") else { return false }
+        return true
     }
 
     private func clearDefaults() throws {
